@@ -1,0 +1,140 @@
+buildscript {
+    repositories {
+        maven { url = "https://files.minecraftforge.net/maven" }
+        mavenCentral()
+        maven { url = "https://repo.spongepowered.org/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
+
+version = "1.0"
+group = "com.zero"
+archivesBaseName = "zero"
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+}
+
+repositories {
+    maven { url = "https://repo.spongepowered.org/maven" }
+}
+
+minecraft {
+    version = "1.12.2-14.23.5.2847"
+    runDir = "run"
+    mappings = "stable_39"
+
+    runClient {
+        args = ["--width", "1200", "--height", "800"]
+        jvmArgs = [
+                "-Xms1G", "-Xmx2G",
+                "-Dsun.java2d.dpiaware=true",
+                "-Dsun.java2d.uiScale=1",
+                "-Dmixin.debug.export=false",  // 不生成 .mixin.out
+                "-Dmixin.debug.verbose=false"
+        ]
+    }
+}
+
+// 配置 embed 用于打包 Mixin
+configurations {
+    embed
+}
+
+dependencies {
+    implementation 'org.joml:joml:1.10.5'
+    embed 'org.joml:joml:1.10.5'
+    // Mixin 编译运行时
+    compile('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
+        exclude module: 'gson'  // 使用 Forge 自带 Gson 2.7
+        exclude module: 'guava'
+        exclude module: 'commons-io'
+    }
+
+    // 注解处理器
+    annotationProcessor 'org.spongepowered:mixin:0.7.11-SNAPSHOT'
+
+    // 打包进 jar
+    embed('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
+        exclude module: 'gson'
+        exclude module: 'guava'
+        exclude module: 'commons-io'
+    }
+
+    compileOnly fileTree(dir: 'optifine', include: '*.jar')
+}
+
+// Mixin refmap 配置
+mixin {
+    add sourceSets.main, "mixins.zero.refmap.json"
+}
+
+jar {
+    manifest {
+        attributes([
+                "Built-By"                : "Protoxy",
+                "Specification-Title"     : "zero",
+                "Specification-Vendor"    : "zero",
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : "${version}",
+                "Implementation-Vendor"   : "protoxy",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                "FMLCorePluginContainsFMLMod": true,
+                "FMLCorePlugin"           : "com.zero.core.ZeroCoreMod",
+                "ForceLoadAsMod": true,
+                "TweakClass"              : "org.spongepowered.asm.launch.MixinTweaker",
+                "TweakOrder"              : 0,
+                "MixinConfigs"            : "mixins.zero.json",
+        ])
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    doFirst {
+        from {
+            configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+        // ⚠️ 排除签名文件
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    }
+}
+
+// reobf 配置
+reobf {
+    jar {
+        mappingType = 'SEARGE'
+    }
+}
+
+// 编译选项
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+}
+
+// 清理旧 refmap
+tasks.clean.doFirst {
+    delete fileTree('build/tmp/compileJava') { include '**/*refmap*.json' }
+}
+
+// 资源处理
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': project.minecraft.version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}

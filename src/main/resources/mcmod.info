@@ -1,0 +1,18 @@
+[
+  {
+    "modid": "zero",
+    "name": "Zero",
+    "description": "zero 是一款什么都不晓得的mod",
+    "version": "1.0.0",
+    "url": "",
+    "authorList": [
+      "FxSao"
+    ],
+    "credits": "Forge_guys",
+    "logoFile": "zero_logo.png",
+    "screenshots": [],
+    "useDependencyInformation": true,
+    "requiredMods": [],
+    "dependencies": []
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.zero.mixin",
+  "refmap": "mixins.zero.refmap.json",
+  "minVersion": "0.7.11",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "client.MixinItemRenderer",
+    "client.MixinEntityRenderer",
+    "client.MixinEntityPlayerSP",
+    "client.MixinModelBiped",
+    "client.MixinLayerHeldItem"
+  ]
+}
